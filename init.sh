@@ -23,10 +23,28 @@ function use_common_namespace() {
 }
 
 function deploy_mongodb() {
+  # add bitnami repository on helm repo to deploy mongodb
+  helm repo add bitnami https://charts.bitnami.com/bitnami
+
   helm upgrade --install --wait \
     --set auth.rootPassword=mongodb \
     --set persistence.mountPath=/tmp/mongodb \
     mongodb bitnami/mongodb
+}
+
+function deploy_api_gateway() {
+  helm repo add kong https://charts.konghq.com
+
+  git clone https://github.com/sungoh5/api-gateway.git  src/api-gateway
+
+  helm upgrade --install --wait \
+    --set ingressController.installCRDs=false \
+    --set ingressController.enabled=false \
+    --set proxy.type=NodePort \
+    --set proxy.tls.enabled=false	 \
+    --set proxy.http.nodePort=32000 \
+    --values ./src/api-gateway/values.yaml \
+    api-gateway kong/kong
 }
 
 function use_local_docker_repository() {
@@ -43,8 +61,7 @@ done
 run_minikube
 use_common_namespace
 
-# add bitnami repository on helm repo to deploy mongodb
-helm repo add bitnami https://charts.bitnami.com/bitnami
-
 deploy_mongodb
+deploy_api_gateway
+
 use_local_docker_repository
